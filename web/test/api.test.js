@@ -245,8 +245,32 @@ test('following the link from the game marks that player on the page', async () 
 
   const html = await (await api.page(send('GET', '/?me=ada'))).text();
 
-  const marked = html.match(/<tr[^>]*id="me"[^>]*>[\s\S]*?<\/tr>/);
+  const marked = html.match(/<li[^>]*id="me"[^>]*>[\s\S]*?<\/li>/);
   assert.ok(marked, 'one row is marked');
   assert.match(marked[0], />Ada</);
   assert.doesNotMatch(marked[0], />Bo</);
+});
+
+test('the board on its own can be fetched, so the page can refresh it without reloading', async () => {
+  await join(ID.ada, 'Ada');
+  await play(ID.ada, 29583);
+
+  const response = await api.page(send('GET', '/?part=board&me=ada'));
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.doesNotMatch(html, /<html|<head/);
+  assert.match(html, /<li[^>]*id="me"/);
+  assert.match(html, /29,583/);
+});
+
+test('the board data also says how many rounds were played', async () => {
+  await join(ID.ada, 'Ada');
+  await play(ID.ada, 33784);
+  await play(ID.ada, 29583);
+
+  const body = await (await api.leaderboard(send('GET', '/api/leaderboard'))).json();
+
+  assert.equal(body.played, 2);
+  assert.equal(body.entries[0].rizz, 'W rizz');
 });

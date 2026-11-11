@@ -54,7 +54,7 @@ test('the link the game prints opens a page with that player marked', async () =
 
   const html = await (await fetch(standing.url)).text();
 
-  assert.match(html, /<tr class="player me" id="me">/);
+  assert.match(html, /<li class="row[^"]* me" id="me"/);
 });
 
 test('a name the service refuses reaches the game with the reason', async () => {

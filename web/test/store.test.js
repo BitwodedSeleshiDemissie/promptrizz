@@ -196,6 +196,17 @@ test('hiding a name nobody has reports that nothing happened', async () => {
   assert.equal(await store.setHidden('nobody', true), false);
 });
 
+test('rounds played counts every round of the hole, solved or not, hidden or not', async () => {
+  await store.saveProfile({ id: ID.ada, name: 'Ada' });
+  await store.saveProfile({ id: ID.bo, name: 'Bo' });
+  await store.saveRound(solved(ID.ada, 30000));
+  await store.saveRound(solved(ID.ada, 29000));
+  await store.saveRound(failed(ID.bo, 31000));
+
+  assert.equal(await store.played(1), 3);
+  assert.equal(await store.played(2), 0);
+});
+
 // --- where one player stands ----------------------------------------------
 
 test('a player can be told their rank and how many players there are', async () => {

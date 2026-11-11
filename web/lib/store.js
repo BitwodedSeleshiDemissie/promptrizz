@@ -110,6 +110,15 @@ export function createStore(query) {
       };
     },
 
+    // How many rounds of a hole have been played, by anyone, solved or not.
+    async played(hole) {
+      const [row] = await query(
+        'select coalesce(sum(rounds), 0)::int as rounds from results where hole = $1::int',
+        [hole],
+      );
+      return row.rounds;
+    },
+
     // Where one player stands on a hole. No solved round, or hidden: no rank.
     async standing(profileId, hole) {
       const [row] = await query(

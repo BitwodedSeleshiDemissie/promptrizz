@@ -5,7 +5,7 @@
 //   leaderboard  GET    the ranking as data                      ?hole=1
 //   page         GET    the ranking as a web page                ?me=<name>
 import { createHash } from 'node:crypto';
-import { renderPage, setupName } from './page.js';
+import { renderBoard, renderPage, rizz, setupName } from './page.js';
 import { checkRound, cleanName, HOLES, isProfileId } from './rules.js';
 
 export const LIMITS = {
@@ -116,7 +116,7 @@ export function createApi({ store, salt }) {
     leaderboard: guarded(async (request) => {
       const hole = Number(new URL(request.url).searchParams.get('hole') ?? 1);
       if (!HOLES[hole]) return refuse(404, 'Unknown hole.');
-      const { players, entries } = await store.board(hole, SHOWN);
+      const [{ players, entries }, played] = await Promise.all([store.board(hole, SHOWN), store.played(hole)]);
       return json(
         200,
         {
@@ -124,12 +124,14 @@ export function createApi({ store, salt }) {
           title: HOLES[hole].title,
           par: HOLES[hole].par,
           players,
+          played,
           entries: entries.map((entry) => ({
             rank: entry.rank,
             name: entry.name,
             best: entry.best,
             firstTry: entry.firstSolved ? entry.firstTry : null,
             rounds: entry.rounds,
+            rizz: rizz(entry.best, HOLES[hole].par).name,
             setup: setupName(entry.model),
             at: entry.at,
           })),
@@ -140,13 +142,17 @@ export function createApi({ store, salt }) {
 
     page: guarded(async (request) => {
       const hole = 1;
-      const { players, entries } = await store.board(hole, SHOWN);
-      const html = renderPage({
+      const asked = new URL(request.url).searchParams;
+      const [{ players, entries }, played] = await Promise.all([store.board(hole, SHOWN), store.played(hole)]);
+      const view = {
         hole: { number: hole, ...HOLES[hole] },
         players,
+        played,
         entries,
-        me: new URL(request.url).searchParams.get('me') ?? undefined,
-      });
+        me: asked.get('me') ?? undefined,
+      };
+      // "?part=board" is the page asking for a fresh board to drop into itself.
+      const html = asked.get('part') === 'board' ? renderBoard(view) : renderPage(view);
       return new Response(html, {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': BRIEFLY },
