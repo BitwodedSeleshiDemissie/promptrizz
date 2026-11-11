@@ -1,0 +1,17 @@
+{
+  "name": "promptrizz-web",
+  "private": true,
+  "description": "The Prompt Rizz leaderboard: the service that receives scores and the public page that shows them.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "migrate": "node scripts/migrate.js",
+    "moderate": "node scripts/moderate.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0"
+  }
+}

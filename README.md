@@ -23,6 +23,19 @@ It shows you the task and waits for your one instruction. You see the task, not 
 
 A round runs on your own Claude account and costs about 35,000 tokens. Play as often as you like. Every round starts from a fresh copy of the bug.
 
+## The leaderboard
+
+There is a public board: https://promptrizz.vercel.app
+
+The first time you play, the game asks for a name. Give one and you are on the board. Press Enter and you play without it. It only asks once.
+
+If you gave a name, the game sends four things after every round: your name, the token count, whether the round was solved, and the model. Nothing else. Never your instruction, never your code.
+
+The board ranks you by your best solved round and shows your first try next to it. The name is tied to a file on your machine (`~/.promptrizz/profile.json`), so nobody else can post as you.
+
+    npx promptrizz name     change your name, or join later
+    npx promptrizz leave    delete your name and scores from the board
+
 ## The rules
 
 Every token counts: what the agent reads, what it writes, and what it reads again from cache. Each step the agent takes sends everything so far once more, so steps cost far more than words do. An agent that wanders is an expensive agent.
@@ -35,7 +48,7 @@ The agent can read and edit files inside a throwaway copy of the app, and that i
 
 ## What is missing
 
-There is one hole. There is no daily task, no leaderboard, and it does not remember your scores. Nothing stops you from cheating: the code is right here, and reading it first is the easy way to a low number. Scores from different models do not compare, which is why the card names the setup. It has only been run on a Mac.
+There is one hole and no daily task. Nothing stops you from cheating: the code is right here, reading it first is the easy way to a low number, and the board takes whatever number a machine sends it. Treat it as a friendly board. Scores from different models do not compare, which is why the card and the board name the setup. It has only been run on a Mac.
 
 ## The name
 
@@ -47,7 +60,15 @@ Rizz is charm. Getting the job done while saying almost nothing is unspoken rizz
     cd promptrizz
     npm test
 
-The tests use a stand-in for Claude Code, so they cost nothing. A hole is a folder in `holes/`: a small app with one bug, and a check the game runs afterwards.
+The tests use a stand-in for Claude Code and a stand-in for the board, so they cost nothing and post nothing. A hole is a folder in `holes/`: a small app with one bug, and a check the game runs afterwards.
+
+The board is in `web/`: a few functions on Vercel, a Postgres database, and one page.
+
+    cd web
+    npm install
+    npm test
+
+Those tests run against a Postgres that lives inside the test process, never the real one.
 
 ## License
 

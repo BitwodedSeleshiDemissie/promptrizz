@@ -5,14 +5,17 @@ import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadHole } from '../src/hole.js';
 import { playRound } from '../src/round.js';
+import { joinBoard } from '../src/board.js';
+import { ADA, fakeBoard, NO_BOARD, NOT_PLAYING, savedProfile, tempHome } from './helpers/fake-board.js';
 import { claudeResult, fakeClaude, tokens } from './helpers/fake-claude.js';
 
 const fix = fileURLToPath(new URL('./fixtures/001-fix/', import.meta.url));
 const used31200 = claudeResult({ 'claude-opus-5-5': tokens(10, 200, 30000, 990) });
 
 // The person at the keyboard: types the given answers, sees what is printed,
-// and has a clipboard (unless told otherwise).
-function player(answers, { clipboard = true } = {}) {
+// and has a clipboard (unless told otherwise). Unless a test says so, they have chosen
+// to play without the leaderboard, and no leaderboard can be reached.
+function player(answers, { clipboard = true, home = tempHome(NOT_PLAYING), board = NO_BOARD } = {}) {
   const seen = [];
   const questions = [];
   const clipboardHolds = [];
@@ -30,6 +33,8 @@ function player(answers, { clipboard = true } = {}) {
       return clipboard;
     },
     progress: () => () => {},
+    home,
+    board,
   };
 }
 
@@ -154,4 +159,143 @@ test('without a clipboard the card is shown but never called copied', async () =
 
   assert.ok(me.seen.some((line) => /^Prompt Rizz #1/.test(line)), 'the card is shown');
   assert.ok(!me.seen.some((line) => /copied/i.test(line)));
+});
+
+// --- the leaderboard ---------------------------------------------------------
+
+const said = (me, pattern) => me.seen.some((line) => pattern.test(line));
+
+test('the first time, the player is told what the leaderboard gets before being asked for a name', async () => {
+  const board = await fakeBoard();
+  const me = player(['Ada', 'fix it'], { home: tempHome(), board: board.url });
+
+  await playRound({ ...me, command: fakeClaude().command });
+  await board.close();
+
+  const { question, seenSoFar } = me.questions[0];
+  assert.match(question, /Name/);
+  assert.match(seenSoFar, /public leaderboard/);
+  assert.match(seenSoFar, /your name/);
+  assert.match(seenSoFar, /token count/);
+  assert.match(seenSoFar, /never your instruction/);
+});
+
+test('the chosen name is kept on this machine and the round is posted under it', async () => {
+  const board = await fakeBoard();
+  const home = tempHome();
+  const me = player(['Ada', 'fix the empty search'], { home, board: board.url });
+
+  await playRound({ ...me, command: fakeClaude({ result: used31200, copyInto: fix }).command });
+  await board.close();
+
+  const profile = savedProfile(home);
+  assert.equal(profile.name, 'Ada');
+  assert.match(profile.id, /^[0-9a-f-]{36}$/);
+  assert.deepEqual(board.joins(), [{ id: profile.id, name: 'Ada' }]);
+  assert.deepEqual(board.rounds(), [
+    { profile: profile.id, hole: 1, tokens: 31200, solved: true, model: 'claude-opus-5-5' },
+  ]);
+});
+
+test('the instruction the player typed is never sent to the leaderboard', async () => {
+  const board = await fakeBoard();
+  const me = player(['Ada', 'my secret instruction'], { home: tempHome(), board: board.url });
+
+  await playRound({ ...me, command: fakeClaude().command });
+  await board.close();
+
+  assert.ok(!JSON.stringify(board.sent).includes('my secret instruction'));
+});
+
+test('after a solved round the player sees their rank and the link to their row', async () => {
+  const board = await fakeBoard();
+  const me = player(['Ada', 'fix it'], { home: tempHome(), board: board.url });
+
+  await playRound({ ...me, command: fakeClaude({ result: used31200, copyInto: fix }).command });
+  await board.close();
+
+  assert.ok(said(me, /^Leaderboard: #3 of 12\. Your best: 31,200 tokens\.$/));
+  assert.ok(me.seen.includes(`Your row: ${board.url}/?me=Ada#me`));
+});
+
+test('an unsolved round is posted too, and claims no rank', async () => {
+  const board = await fakeBoard();
+  const me = player(['Ada', 'do nothing'], { home: tempHome(), board: board.url });
+
+  await playRound({ ...me, command: fakeClaude({ result: used31200 }).command });
+  await board.close();
+
+  assert.equal(board.rounds()[0].solved, false);
+  assert.ok(said(me, /no rank yet/));
+  assert.ok(!said(me, /^Your row:/));
+});
+
+test('just pressing Enter at the name question plays without the leaderboard, and is remembered', async () => {
+  const board = await fakeBoard();
+  const home = tempHome();
+  const first = player(['', 'fix it'], { home, board: board.url });
+  const second = player(['fix it again'], { home, board: board.url });
+
+  await playRound({ ...first, command: fakeClaude().command });
+  await playRound({ ...second, command: fakeClaude().command });
+  await board.close();
+
+  assert.deepEqual(board.sent, []);
+  assert.deepEqual(savedProfile(home), { declined: true });
+  assert.ok(said(first, /npx promptrizz name/), 'told how to join later');
+  assert.equal(second.questions.length, 1, 'not asked for a name again');
+});
+
+test('a name that is taken is asked for again, with the reason', async () => {
+  const board = await fakeBoard({ taken: ['Grace'] });
+  const home = tempHome();
+  const me = player(['Grace', 'Ada', 'fix it'], { home, board: board.url });
+
+  await playRound({ ...me, command: fakeClaude().command });
+  await board.close();
+
+  assert.ok(said(me, /That name is taken\./));
+  assert.equal(savedProfile(home).name, 'Ada');
+});
+
+test('a player who already has a name is not asked again, and their rounds are posted', async () => {
+  const board = await fakeBoard();
+  await joinBoard({ board: board.url, ...ADA });
+  const me = player(['fix it'], { home: tempHome(ADA), board: board.url });
+
+  await playRound({ ...me, command: fakeClaude().command });
+  await board.close();
+
+  assert.equal(me.questions.length, 1);
+  assert.equal(board.rounds()[0].profile, ADA.id);
+});
+
+test('with the leaderboard unreachable on the first run, the round is played and nothing is saved', async () => {
+  const home = tempHome();
+  const me = player(['Ada', 'fix it'], { home, board: NO_BOARD });
+
+  await playRound({ ...me, command: fakeClaude().command });
+
+  assert.ok(said(me, /Could not reach the leaderboard/));
+  assert.ok(said(me, /^Prompt Rizz #1/), 'the card is still shown');
+  assert.equal(savedProfile(home), null, 'so the name is asked again next time');
+});
+
+test('when posting fails the card still stands and the player is told', async () => {
+  const me = player(['fix it'], { home: tempHome(ADA), board: NO_BOARD });
+
+  await playRound({ ...me, command: fakeClaude().command });
+
+  assert.ok(said(me, /^Prompt Rizz #1/));
+  assert.ok(said(me, /this round was not posted/));
+});
+
+test('a player who chose to stay off the leaderboard sends nothing at all', async () => {
+  const board = await fakeBoard();
+  const me = player(['fix it'], { home: tempHome(NOT_PLAYING), board: board.url });
+
+  await playRound({ ...me, command: fakeClaude().command });
+  await board.close();
+
+  assert.deepEqual(board.sent, []);
 });

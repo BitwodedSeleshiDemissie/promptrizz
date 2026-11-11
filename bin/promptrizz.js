@@ -1,22 +1,18 @@
 #!/usr/bin/env node
 import { createInterface } from 'node:readline';
+import { main } from '../src/cli.js';
 import { copyToClipboard } from '../src/clipboard.js';
-import { playRound } from '../src/round.js';
 
-// The prompt is closed as soon as a line is typed, so Ctrl-C can stop a running round.
-function ask(question) {
-  return new Promise((resolve, reject) => {
-    const prompt = createInterface({ input: process.stdin, output: process.stdout });
-    let answered = false;
-    prompt.question(question, (answer) => {
-      answered = true;
-      prompt.close();
-      resolve(answer);
-    });
-    prompt.once('close', () => {
-      if (!answered) reject(new Error('No instruction was typed.'));
-    });
-  });
+// One reader for everything the player types. It leaves the terminal in its normal
+// mode, so Ctrl-C stops the game, and a running agent with it, at any moment.
+const keyboard = createInterface({ input: process.stdin });
+const typedLines = keyboard[Symbol.asyncIterator]();
+
+async function ask(question) {
+  process.stdout.write(question);
+  const { value, done } = await typedLines.next();
+  if (done) throw new Error('Nothing was typed.');
+  return value;
 }
 
 // Shows that the wait is alive: a seconds counter on a real terminal, one plain line
@@ -37,8 +33,16 @@ function progress(text) {
 }
 
 try {
-  await playRound({ ask, print: console.log, copy: copyToClipboard, progress });
+  process.exitCode = await main({
+    args: process.argv.slice(2),
+    ask,
+    print: console.log,
+    copy: copyToClipboard,
+    progress,
+  });
 } catch (error) {
   console.error(`\n${error.message}`);
   process.exitCode = 1;
+} finally {
+  keyboard.close();
 }
