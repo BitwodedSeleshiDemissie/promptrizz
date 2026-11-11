@@ -19,8 +19,25 @@ function ask(question) {
   });
 }
 
+// Shows that the wait is alive: a seconds counter on a real terminal, one plain line
+// anywhere else. Returns the function that takes it down.
+function progress(text) {
+  if (!process.stdout.isTTY) {
+    console.log(text);
+    return () => {};
+  }
+  const started = Date.now();
+  const draw = () => process.stdout.write(`\r${text} ${Math.floor((Date.now() - started) / 1000)}s`);
+  draw();
+  const ticker = setInterval(draw, 1000);
+  return () => {
+    clearInterval(ticker);
+    process.stdout.write('\n');
+  };
+}
+
 try {
-  await playRound({ ask, print: console.log, copy: copyToClipboard });
+  await playRound({ ask, print: console.log, copy: copyToClipboard, progress });
 } catch (error) {
   console.error(`\n${error.message}`);
   process.exitCode = 1;

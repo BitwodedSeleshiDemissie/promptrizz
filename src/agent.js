@@ -16,12 +16,19 @@ const SESSION = [
   '--no-session-persistence',
 ];
 
+const NOT_FOUND = 'Claude Code was not found. Install it, then run Prompt Rizz again.';
+const TOO_OLD =
+  'Prompt Rizz needs a newer Claude Code than the one installed. ' +
+  'Update it with `claude update`, then run this again.';
+
 function readResult(stdout, stderr) {
   let result;
   try {
     result = JSON.parse(stdout);
   } catch {
-    throw new Error(`Claude Code did not finish the round: ${(stderr || stdout).trim()}`);
+    const said = (stderr || stdout).trim();
+    if (/unknown option/i.test(said)) throw new Error(TOO_OLD);
+    throw new Error(`Claude Code did not finish the round: ${said}`);
   }
   if (result.is_error) throw new Error(`Claude Code did not finish the round: ${result.result}`);
 
@@ -43,13 +50,7 @@ export function runAgent({ instruction, folder, command = 'claude' }) {
     let stderr = '';
     child.stdout.on('data', (chunk) => (stdout += chunk));
     child.stderr.on('data', (chunk) => (stderr += chunk));
-    child.on('error', (error) => {
-      reject(
-        error.code === 'ENOENT'
-          ? new Error('Claude Code was not found. Install it, then run Prompt Rizz again.')
-          : error,
-      );
-    });
+    child.on('error', (error) => reject(error.code === 'ENOENT' ? new Error(NOT_FOUND) : error));
     child.on('close', () => {
       try {
         resolve(readResult(stdout, stderr));
@@ -59,5 +60,15 @@ export function runAgent({ instruction, folder, command = 'claude' }) {
     });
     child.stdin.on('error', () => {});
     child.stdin.end(instruction);
+  });
+}
+
+// Fails early, before the player has typed anything, if Claude Code is not installed.
+// Asking for the version starts no session and spends no tokens.
+export function checkAgent(command = 'claude') {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, ['--version'], { stdio: 'ignore' });
+    child.on('error', (error) => reject(error.code === 'ENOENT' ? new Error(NOT_FOUND) : error));
+    child.on('close', () => resolve());
   });
 }

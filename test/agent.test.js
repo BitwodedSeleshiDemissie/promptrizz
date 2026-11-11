@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runAgent } from '../src/agent.js';
+import { checkAgent, runAgent } from '../src/agent.js';
 import { claudeResult, fakeClaude, tokens } from './helpers/fake-claude.js';
 
 const newFolder = () => mkdtempSync(join(tmpdir(), 'agent-test-'));
@@ -78,6 +78,27 @@ test("a failed run passes on Claude Code's own message", async () => {
     runAgent({ instruction: 'fix it', folder: newFolder(), command: claude.command }),
     /Credit balance is too low/,
   );
+});
+
+test('a Claude Code too old to know the options is told to update, in plain words', async () => {
+  const claude = fakeClaude({ raw: "error: unknown option '--restricted'", exitCode: 1 });
+
+  await assert.rejects(
+    runAgent({ instruction: 'fix it', folder: newFolder(), command: claude.command }),
+    /needs a newer Claude Code.*claude update/s,
+  );
+});
+
+test('checking for Claude Code passes when it is installed, without starting any work', async () => {
+  const claude = fakeClaude();
+
+  await checkAgent(claude.command);
+
+  assert.equal(claude.wasRun(), false);
+});
+
+test('checking for Claude Code explains when it is missing', async () => {
+  await assert.rejects(checkAgent('no-such-claude-command'), /Claude Code was not found/);
 });
 
 test('output that is not a result is reported, not scored', async () => {

@@ -1,7 +1,16 @@
 {
   "name": "promptrizz",
-  "version": "0.1.0",
-  "description": "A daily challenge for people who code with AI agents. Fewest tokens wins.",
+  "version": "0.1.1",
+  "description": "A challenge for people who code with AI agents: same bug, one instruction, fewest tokens wins.",
+  "keywords": [
+    "claude-code",
+    "ai-agents",
+    "coding-agent",
+    "tokens",
+    "prompt",
+    "game",
+    "cli"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -35,6 +35,13 @@ test('without Claude Code installed, it explains and stops', () => {
 
   assert.equal(round.status, 1);
   assert.match(round.stderr, /Claude Code was not found/);
+  assert.doesNotMatch(round.stdout, /Your one instruction/);
+});
+
+test('the command says the agent is working while the player waits', { skip: process.platform === 'win32' }, () => {
+  const round = play({ path: pathWithOnly(fakeClaude().dir), typed: 'fix it\n' });
+
+  assert.match(round.stdout, /^Your agent is working\. You do nothing else\.$/m);
 });
 
 test('when nothing is typed, it stops instead of starting the agent', { skip: process.platform === 'win32' }, () => {

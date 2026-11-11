@@ -6,20 +6,20 @@ Everyone gets the same small bug. You get one instruction. Your agent fixes it, 
 
     Prompt Rizz #1: fix the search crash
     Par:    35,000 tokens
-    You:    21,394 tokens  (13,606 under par)
+    You:    29,583 tokens  (5,417 under par)
     Setup:  Claude Code + Fable 5.2
 
-That score is from a real round. Par is what it costs when you just describe the bug and say "fix it". The 13,606 is the instruction.
+That score is from a real round. Par is what it costs when you just describe the bug and say "fix it". The 5,417 is the instruction.
 
 There are leaderboards now for who burns the most tokens. This is the other one.
 
 ## Play
 
-You need Node 20 or newer and [Claude Code](https://claude.com/claude-code), installed and logged in. It was built against Claude Code 2.1.322, and older versions may not have the options it uses.
+You need Node 20 or newer and [Claude Code](https://claude.com/claude-code), installed and logged in. It was built against Claude Code 2.1.322. If yours is too old, the game says so and tells you how to update.
 
     npx promptrizz
 
-It shows you the task and waits for your one instruction. After that you do nothing. In under half a minute you get a card, copied to your clipboard.
+It shows you the task and waits for your one instruction. You see the task, not the code. After that you do nothing. In under half a minute you get a card, copied to your clipboard, and only then does it tell you where the agent worked, so you can look at what it did.
 
 A round runs on your own Claude account and costs about 35,000 tokens. Play as often as you like. Every round starts from a fresh copy of the bug.
 
@@ -35,7 +35,7 @@ The agent can read and edit files inside a throwaway copy of the app, and that i
 
 ## What is missing
 
-There is one hole. There is no daily task, no leaderboard, and nothing stops you from cheating. Scores from different models do not compare, which is why the card names the setup. It has only been run on a Mac.
+There is one hole. There is no daily task, no leaderboard, and it does not remember your scores. Nothing stops you from cheating: the code is right here, and reading it first is the easy way to a low number. Scores from different models do not compare, which is why the card names the setup. It has only been run on a Mac.
 
 ## The name
 
