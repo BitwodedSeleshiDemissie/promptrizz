@@ -2,6 +2,7 @@
   "name": "promptrizz",
   "version": "0.1.0",
   "description": "A daily challenge for people who code with AI agents. Fewest tokens wins.",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "promptrizz": "bin/promptrizz.js"
