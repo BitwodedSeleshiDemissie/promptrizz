@@ -17,9 +17,7 @@ There are leaderboards now for who burns the most tokens. This is the other one.
 
 You need Node 20 or newer and [Claude Code](https://claude.com/claude-code), installed and logged in. It was built against Claude Code 2.1.322, and older versions may not have the options it uses.
 
-    git clone https://github.com/BitwodedSeleshiDemissie/promptrizz.git
-    cd promptrizz
-    node bin/promptrizz.js
+    npx promptrizz
 
 It shows you the task and waits for your one instruction. After that you do nothing. In under half a minute you get a card, copied to your clipboard.
 
@@ -45,6 +43,8 @@ Rizz is charm. Getting the job done while saying almost nothing is unspoken rizz
 
 ## Working on it
 
+    git clone https://github.com/BitwodedSeleshiDemissie/promptrizz.git
+    cd promptrizz
     npm test
 
 The tests use a stand-in for Claude Code, so they cost nothing. A hole is a folder in `holes/`: a small app with one bug, and a check the game runs afterwards.

@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "A daily challenge for people who code with AI agents. Fewest tokens wins.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BitwodedSeleshiDemissie/promptrizz.git"
+  },
   "type": "module",
   "bin": {
     "promptrizz": "bin/promptrizz.js"
