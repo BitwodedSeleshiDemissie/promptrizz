@@ -1,0 +1,6 @@
+{
+  "number": 1,
+  "title": "fix the search crash",
+  "task": "This tiny book-search app crashes when the search box is empty. Fix it: an empty search should list every book.",
+  "par": 35000
+}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Tiny Library</title>
+  </head>
+  <body>
+    <h1>Tiny Library</h1>
+    <input id="box" placeholder="Search by title or author" autofocus>
+    <ul id="results"></ul>
+    <script>
+      const box = document.getElementById('box');
+      const results = document.getElementById('results');
+
+      box.addEventListener('input', async () => {
+        const response = await fetch('/api/search?q=' + encodeURIComponent(box.value));
+        const books = await response.json();
+        results.replaceChildren(
+          ...books.map((book) => {
+            const item = document.createElement('li');
+            item.textContent = `${book.title}, ${book.author} (${book.year})`;
+            return item;
+          }),
+        );
+      });
+    </script>
+  </body>
+</html>
